@@ -81,6 +81,17 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
+            <!-- Testes paralelos por classe (1 fork por core) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <forkCount>1C</forkCount>
+                    <reuseForks>true</reuseForks>
+                    <failIfNoTests>false</failIfNoTests>
+                </configuration>
+            </plugin>
+
             <!-- JaCoCo — cobertura mínima 90% -->
             <plugin>
                 <groupId>org.jacoco</groupId>

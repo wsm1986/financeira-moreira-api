@@ -1,0 +1,108 @@
+name: CI — Financeira Moreira API
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# cancela runs antigas do mesmo branch/PR ao receber novo push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JAVA_VERSION: '17'
+  JAVA_DISTRO:  'temurin'
+
+# ──────────────────────────────────────────────
+#  JOB 1 — Build, Testes e Cobertura (paralelo)
+# ──────────────────────────────────────────────
+jobs:
+  test:
+    name: 🧪 Test & Coverage (Java ${{ env.JAVA_VERSION }})
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ env.JAVA_VERSION }} (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRO }}
+          cache: maven          # cache automático ~/.m2/repository
+
+      - name: Build + Testes + JaCoCo check
+        run: mvn verify --batch-mode --no-transfer-progress
+        env:
+          SPRING_PROFILES_ACTIVE: dev
+
+      - name: Upload relatório JaCoCo
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          retention-days: 14
+
+      # ─── Comentário no PR com resumo de cobertura ───
+      - name: Resumo de cobertura no PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request' && always()
+        with:
+          script: |
+            const fs   = require('fs');
+            const path = 'target/site/jacoco/index.html';
+            if (!fs.existsSync(path)) { console.log('Relatório não encontrado'); return; }
+
+            const html   = fs.readFileSync(path, 'utf8');
+            const match  = html.match(/Total[^%]+?(\d+)%/s);
+            const pct    = match ? match[1] : '?';
+            const status = parseInt(pct) >= 90 ? '✅' : '⚠️';
+
+            await github.rest.issues.createComment({
+              owner:    context.repo.owner,
+              repo:     context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## ${status} Cobertura JaCoCo: **${pct}%**\n> Mínimo exigido: 90% em \`application.*\`\n\n[Ver relatório completo no artefato do workflow](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`
+            });
+
+# ──────────────────────────────────────────────
+#  JOB 2 — Deploy no Render (só no push ao main)
+# ──────────────────────────────────────────────
+  deploy:
+    name: 🚀 Deploy → Render
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Trigger Render deploy hook
+        run: |
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
+          echo "Render respondeu: $HTTP_STATUS"
+          [ "$HTTP_STATUS" -eq 200 ] || [ "$HTTP_STATUS" -eq 201 ] || exit 1
+
+      - name: WhatsApp — deploy iniciado 🚀
+        if: success()
+        run: |
+          MESSAGE="🚀 *Financeira API* — Deploy iniciado no Render%0ACommit%3A ${{ github.sha }}%0APor%3A ${{ github.actor }}"
+          curl -s "https://api.callmebot.com/whatsapp.php?phone=${{ secrets.CALLMEBOT_PHONE }}&text=${MESSAGE}&apikey=${{ secrets.CALLMEBOT_APIKEY }}"
+
+# ──────────────────────────────────────────────
+#  JOB 3 — Notifica falha no WhatsApp
+# ──────────────────────────────────────────────
+  notify-failure:
+    name: 🔴 Notificar falha
+    needs: [test, deploy]
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+      - name: WhatsApp — build/deploy falhou ❌
+        run: |
+          MESSAGE="❌ *Financeira API* — Falha no CI%0ABranch%3A ${{ github.ref_name }}%0ACommit%3A ${{ github.sha }}%0APor%3A ${{ github.actor }}"
+          curl -s "https://api.callmebot.com/whatsapp.php?phone=${{ secrets.CALLMEBOT_PHONE }}&text=${MESSAGE}&apikey=${{ secrets.CALLMEBOT_APIKEY }}"
