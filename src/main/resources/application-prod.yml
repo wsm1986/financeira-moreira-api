@@ -4,14 +4,17 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      # "update" cria as tabelas se não existirem — seguro para o primeiro deploy
+      # Trocar para "validate" + Flyway quando o schema estabilizar
+      ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: public
 
 app:
   auth:
     mode: prod
 
 firebase:
-  project-id: ${FIREBASE_PROJECT_ID}
+  project-id: ${FIREBASE_PROJECT_ID:}

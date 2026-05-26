@@ -54,6 +54,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- PostgreSQL — banco relacional para prod (Neon) -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Firebase Admin SDK — autenticação prod -->
         <dependency>
             <groupId>com.google.firebase</groupId>
