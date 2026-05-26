@@ -1,0 +1,19 @@
+{
+  "state": {
+    "categories": [
+      { "id": "cat1",  "name": "Moradia",        "icon": "🏠", "budget": 2500, "color": "#f87171", "type": "expense", "nature": "essencial" },
+      { "id": "cat2",  "name": "Alimentação",    "icon": "🍔", "budget": 1200, "color": "#7c8dff", "type": "expense", "nature": "essencial" },
+      { "id": "cat3",  "name": "Transporte",     "icon": "🚗", "budget": 800,  "color": "#fbbf24", "type": "expense", "nature": "essencial" },
+      { "id": "cat4",  "name": "Saúde",          "icon": "💊", "budget": 400,  "color": "#34d399", "type": "expense", "nature": "essencial" },
+      { "id": "cat5",  "name": "Lazer",          "icon": "🎮", "budget": 500,  "color": "#a78bfa", "type": "expense", "nature": "desejo" },
+      { "id": "cat6",  "name": "Assinaturas",    "icon": "📺", "budget": 300,  "color": "#9499b0", "type": "expense", "nature": "desejo" },
+      { "id": "cat7",  "name": "Renda",          "icon": "💼", "budget": 0,    "color": "#34d399", "type": "income" },
+      { "id": "cat8",  "name": "Investimentos",  "icon": "📈", "budget": 0,    "color": "#a78bfa", "type": "income",  "nature": "investimento" },
+      { "id": "cat9",  "name": "Outros",         "icon": "💳", "budget": 300,  "color": "#9499b0", "type": "both" },
+      { "id": "cat10", "name": "Salário/Renda",  "icon": "💰", "budget": 0,    "color": "#22c55e", "type": "income" },
+      { "id": "cat11", "name": "Tecnologia",     "icon": "💻", "budget": 700,  "color": "#60a5fa", "type": "expense", "nature": "desejo" },
+      { "id": "cat12", "name": "Compras",        "icon": "🛒", "budget": 400,  "color": "#fb923c", "type": "expense", "nature": "desejo" }
+    ]
+  },
+  "version": 5
+}

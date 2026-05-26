@@ -4,7 +4,12 @@ server:
 spring:
   application:
     name: financeira-moreira-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  jpa:
+    show-sql: false
+    open-in-view: false
 
 callmebot:
-  phone: ${CALLMEBOT_PHONE}
-  apikey: ${CALLMEBOT_APIKEY}
+  phone: ${CALLMEBOT_PHONE:}
+  apikey: ${CALLMEBOT_APIKEY:}
