@@ -1,22 +1,18 @@
 spring:
   datasource:
-    # TODO: substituir por PostgreSQL quando o banco estiver provisionado no Render
-    # url: ${DATABASE_URL}
-    # driver-class-name: org.postgresql.Driver
-    url: jdbc:h2:mem:financeira;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: false
+    # DATABASE_URL deve ser a Internal Database URL do Render (sem prefixo jdbc:)
+    # Formato: postgresql://user:password@host/db
+    # O yaml adiciona jdbc: na frente para formar uma JDBC URL valida.
+    # NUNCA commitar a URL com usuario/senha — configure como variavel de ambiente no Render.
+    url: jdbc:${DATABASE_URL}
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
+        dialect: org.hibernate.dialect.PostgreSQLDialect
 
 app:
   auth:

@@ -24,6 +24,7 @@ public class SecurityConfig {
     private static final String[] PUBLIC_PATHS = {
             "/api/sync",
             "/api/version",
+            "/api/ping",        // wake-up / health check publico
             "/h2-console/**",
             "/actuator/health"
     };
