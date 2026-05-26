@@ -15,6 +15,6 @@ public class SyncController {
 
     @GetMapping("/version")
     public String version() {
-        return "build:732a967 whatsapp-paths-ok";
+        return "build:b4f0fbd whatsapp-sync+cat-autoseed";
     }
 }
