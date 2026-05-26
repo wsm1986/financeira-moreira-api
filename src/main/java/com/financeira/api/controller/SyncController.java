@@ -12,4 +12,9 @@ public class SyncController {
     public String sync() {
         return "Sincronizado";
     }
+
+    @GetMapping("/version")
+    public String version() {
+        return "build:732a967 whatsapp-paths-ok";
+    }
 }
