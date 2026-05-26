@@ -23,6 +23,7 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_PATHS = {
             "/api/sync",
+            "/api/version",
             "/h2-console/**",
             "/actuator/health"
     };
