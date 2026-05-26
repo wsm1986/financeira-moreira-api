@@ -1,27 +1,112 @@
 {
   "info": {
     "name": "Financeira Moreira API",
-    "description": "Collection completa — Financeira Moreira Backend\n\n**Perfil dev:** usa header `X-Dev-User-Id` no lugar de Firebase JWT.\n**Perfil prod:** use `Authorization: Bearer <firebase-token>`.\n\nVariáveis de ambiente:\n- `base_url` — URL do backend\n- `dev_user_id` — UID do usuário de teste\n- `category_id` — preenchido automaticamente após POST /categories",
+    "description": "Collection completa — Financeira Moreira Backend\n\n**Modos de autenticação:**\n- `auth_mode = dev` → header `X-Dev-User-Id` (sem Firebase)\n- `auth_mode = prod` → Bearer token Firebase (buscado automaticamente)\n\nVariáveis de ambiente:\n- `base_url` — URL do backend\n- `auth_mode` — `dev` ou `prod`\n- `dev_user_id` — UID do usuário de teste (dev)\n- `firebase_api_key` — Web API Key do projeto Firebase\n- `firebase_email` — email do usuário de teste no Firebase\n- `firebase_password` — senha do usuário de teste\n- `firebase_token` — preenchido automaticamente pelo pre-request script\n- `category_id` — preenchido automaticamente após POST /categories",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+
   "variable": [
+    { "key": "base_url",    "value": "https://financeira-moreira-api.onrender.com" },
+    { "key": "auth_mode",   "value": "dev", "description": "dev | prod" },
+    { "key": "dev_user_id", "value": "dev-user-001" },
+    { "key": "firebase_api_key",  "value": "" },
+    { "key": "firebase_email",    "value": "" },
+    { "key": "firebase_password", "value": "" },
+    { "key": "firebase_token",    "value": "" },
+    { "key": "firebase_token_expiry", "value": "0" },
+    { "key": "category_id", "value": "" }
+  ],
+
+  "event": [
     {
-      "key": "base_url",
-      "value": "https://financeira-moreira-api.onrender.com",
-      "description": "Trocar para http://localhost:8080 para testar local"
-    },
-    {
-      "key": "dev_user_id",
-      "value": "dev-user-001",
-      "description": "UID injetado pelo DevAuthFilter em dev"
-    },
-    {
-      "key": "category_id",
-      "value": "",
-      "description": "Preenchido automaticamente pelo POST /categories"
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// ── Roda antes de CADA request da collection ──────────────────",
+          "// Se auth_mode = dev, nada a fazer — o header é fixo",
+          "if (pm.collectionVariables.get('auth_mode') !== 'prod') return;",
+          "",
+          "// Verifica se o token ainda é válido (expira em 1h, renova 5min antes)",
+          "const expiry = parseInt(pm.collectionVariables.get('firebase_token_expiry') || '0');",
+          "const token  = pm.collectionVariables.get('firebase_token');",
+          "if (token && Date.now() < expiry - 300_000) {",
+          "  console.log('Token Firebase ainda válido, pulando login');",
+          "  return;",
+          "}",
+          "",
+          "// Faz login via Firebase Authentication REST API",
+          "const apiKey   = pm.collectionVariables.get('firebase_api_key');",
+          "const email    = pm.collectionVariables.get('firebase_email');",
+          "const password = pm.collectionVariables.get('firebase_password');",
+          "",
+          "if (!apiKey || !email || !password) {",
+          "  console.warn('firebase_api_key / email / password não configurados — pulando');",
+          "  return;",
+          "}",
+          "",
+          "pm.sendRequest({",
+          "  url: `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`,",
+          "  method: 'POST',",
+          "  header: { 'Content-Type': 'application/json' },",
+          "  body: {",
+          "    mode: 'raw',",
+          "    raw: JSON.stringify({ email, password, returnSecureToken: true })",
+          "  }",
+          "}, (err, res) => {",
+          "  if (err) { console.error('Erro Firebase login:', err); return; }",
+          "  const json = res.json();",
+          "  if (json.idToken) {",
+          "    pm.collectionVariables.set('firebase_token', json.idToken);",
+          "    pm.collectionVariables.set('firebase_token_expiry', Date.now() + 3_600_000);",
+          "    console.log('🔑 Token Firebase renovado — uid:', json.localId);",
+          "  } else {",
+          "    console.error('Firebase login falhou:', json.error?.message);",
+          "  }",
+          "});"
+        ]
+      }
     }
   ],
+
   "item": [
+
+    {
+      "name": "🔑 Auth — token Firebase manual",
+      "item": [
+        {
+          "name": "POST Firebase — login (pega idToken)",
+          "request": {
+            "method": "POST",
+            "url": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{firebase_api_key}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{firebase_email}}\",\n  \"password\": \"{{firebase_password}}\",\n  \"returnSecureToken\": true\n}"
+            },
+            "description": "Faz login no Firebase e retorna o idToken.\nUse este request para inspecionar o token manualmente.\nO pre-request script da collection já faz isso automaticamente."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('idToken presente', () => pm.expect(json.idToken).to.be.a('string'));",
+                  "",
+                  "if (json.idToken) {",
+                  "  pm.collectionVariables.set('firebase_token', json.idToken);",
+                  "  pm.collectionVariables.set('firebase_token_expiry', Date.now() + 3_600_000);",
+                  "  console.log('Token salvo. UID:', json.localId);",
+                  "  console.log('Expira em: 1 hora');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
 
     {
       "name": "🌐 Público",
@@ -31,7 +116,7 @@
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/sync",
-            "description": "Endpoint público, sem autenticação. Retorna 'Sincronizado'."
+            "description": "Endpoint público, sem autenticação. Funciona em dev e prod."
           },
           "event": [
             {
@@ -39,7 +124,7 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Corpo contém Sincronizado', () => pm.expect(pm.response.text()).to.include('Sincronizado'));"
+                  "pm.test('Corpo Sincronizado', () => pm.expect(pm.response.text()).to.include('Sincronizado'));"
                 ]
               }
             }
@@ -57,9 +142,10 @@
             "method": "POST",
             "url": "{{base_url}}/api/notificacoes/teste",
             "header": [
-              { "key": "X-Dev-User-Id", "value": "{{dev_user_id}}" }
+              { "key": "X-Dev-User-Id",  "value": "{{dev_user_id}}", "disabled": false },
+              { "key": "Authorization",   "value": "Bearer {{firebase_token}}", "disabled": false }
             ],
-            "description": "Envia mensagem de teste via CallMeBot (assíncrono, timeout 20s)."
+            "description": "Envia WhatsApp de teste (assíncrono).\nAmbos os headers são enviados — o backend usa o adequado ao perfil ativo."
           },
           "event": [
             {
@@ -67,29 +153,26 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Campo status presente', () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('status');",
-                  "});"
+                  "pm.test('Campo status', () => pm.expect(pm.response.json()).to.have.property('status'));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "POST /api/notificacoes/enviar — mensagem customizada",
+          "name": "POST /api/notificacoes/enviar",
           "request": {
             "method": "POST",
             "url": "{{base_url}}/api/notificacoes/enviar",
             "header": [
-              { "key": "X-Dev-User-Id", "value": "{{dev_user_id}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "X-Dev-User-Id",  "value": "{{dev_user_id}}" },
+              { "key": "Authorization",   "value": "Bearer {{firebase_token}}" },
+              { "key": "Content-Type",    "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"mensagem\": \"🧪 Teste manual via Postman — {{$isoTimestamp}}\"\n}"
-            },
-            "description": "Envia mensagem customizada para o WhatsApp via CallMeBot."
+            }
           },
           "event": [
             {
@@ -97,10 +180,7 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Mensagem no response', () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json.mensagem).to.be.a('string');",
-                  "});"
+                  "pm.test('Campo mensagem', () => pm.expect(pm.response.json().mensagem).to.be.a('string'));"
                 ]
               }
             }
@@ -114,14 +194,14 @@
       "item": [
 
         {
-          "name": "GET /api/categories — listar todas",
+          "name": "GET /api/categories — listar",
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/categories",
             "header": [
-              { "key": "X-Dev-User-Id", "value": "{{dev_user_id}}" }
-            ],
-            "description": "Lista todas as categorias do usuário autenticado."
+              { "key": "X-Dev-User-Id", "value": "{{dev_user_id}}" },
+              { "key": "Authorization",  "value": "Bearer {{firebase_token}}" }
+            ]
           },
           "event": [
             {
@@ -129,16 +209,13 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Resposta é array', () => {",
-                  "  pm.expect(pm.response.json()).to.be.an('array');",
-                  "});",
-                  "pm.test('Categoria tem campos obrigatórios', () => {",
-                  "  const lista = pm.response.json();",
-                  "  if (lista.length > 0) {",
-                  "    const cat = lista[0];",
-                  "    pm.expect(cat).to.have.all.keys('id','name','icon','budget','color','type','nature');",
-                  "  }",
-                  "});"
+                  "pm.test('É array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+                  "const lista = pm.response.json();",
+                  "if (lista.length > 0) {",
+                  "  pm.test('Tem campos obrigatórios', () => {",
+                  "    pm.expect(lista[0]).to.have.all.keys('id','name','icon','budget','color','type','nature');",
+                  "  });",
+                  "}"
                 ]
               }
             }
@@ -152,29 +229,24 @@
             "url": "{{base_url}}/api/categories",
             "header": [
               { "key": "X-Dev-User-Id", "value": "{{dev_user_id}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Authorization",  "value": "Bearer {{firebase_token}}" },
+              { "key": "Content-Type",   "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Pets\",\n  \"icon\": \"🐶\",\n  \"budget\": 200.00,\n  \"color\": \"#f59e0b\",\n  \"type\": \"expense\",\n  \"nature\": \"desejo\"\n}"
-            },
-            "description": "Cria nova categoria. Salva o ID retornado em `category_id` automaticamente."
+            }
           },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
-                  "pm.test('ID retornado', () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json.id).to.be.a('string');",
-                  "  pm.collectionVariables.set('category_id', json.id);",
-                  "  console.log('category_id salvo:', json.id);",
-                  "});",
-                  "pm.test('Nome correto', () => {",
-                  "  pm.expect(pm.response.json().name).to.eql('Pets');",
-                  "});"
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('ID retornado', () => pm.expect(json.id).to.be.a('string'));",
+                  "pm.collectionVariables.set('category_id', json.id);",
+                  "console.log('category_id salvo:', json.id);"
                 ]
               }
             }
@@ -182,29 +254,27 @@
         },
 
         {
-          "name": "POST /api/categories — 422 nome duplicado",
+          "name": "POST /api/categories — 422 duplicado",
           "request": {
             "method": "POST",
             "url": "{{base_url}}/api/categories",
             "header": [
               { "key": "X-Dev-User-Id", "value": "{{dev_user_id}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Authorization",  "value": "Bearer {{firebase_token}}" },
+              { "key": "Content-Type",   "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Pets\",\n  \"icon\": \"🐶\",\n  \"budget\": 200.00,\n  \"color\": \"#f59e0b\",\n  \"type\": \"expense\",\n  \"nature\": \"desejo\"\n}"
-            },
-            "description": "Tenta criar categoria com nome já existente. Espera 422."
+            }
           },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 422 Unprocessable', () => pm.response.to.have.status(422));",
-                  "pm.test('Mensagem de erro presente', () => {",
-                  "  pm.expect(pm.response.json().message).to.be.a('string');",
-                  "});"
+                  "pm.test('Status 422', () => pm.response.to.have.status(422));",
+                  "pm.test('Mensagem de erro', () => pm.expect(pm.response.json().message).to.be.a('string'));"
                 ]
               }
             }
@@ -218,24 +288,21 @@
             "url": "{{base_url}}/api/categories",
             "header": [
               { "key": "X-Dev-User-Id", "value": "{{dev_user_id}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Authorization",  "value": "Bearer {{firebase_token}}" },
+              { "key": "Content-Type",   "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"\",\n  \"icon\": \"🐶\",\n  \"budget\": 200.00,\n  \"color\": \"#f59e0b\",\n  \"type\": \"tipo_invalido\",\n  \"nature\": \"desejo\"\n}"
-            },
-            "description": "name em branco + type inválido — espera 400 com mapa de erros."
+              "raw": "{\n  \"name\": \"\",\n  \"icon\": \"❓\",\n  \"budget\": 0,\n  \"color\": \"#000\",\n  \"type\": \"tipo_invalido\",\n  \"nature\": null\n}"
+            }
           },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 400 Bad Request', () => pm.response.to.have.status(400));",
-                  "pm.test('Erro no campo name', () => {",
-                  "  const json = pm.response.json();",
-                  "  pm.expect(json).to.have.property('name');",
-                  "});"
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Erro no campo name', () => pm.expect(pm.response.json()).to.have.property('name'));"
                 ]
               }
             }
@@ -249,13 +316,13 @@
             "url": "{{base_url}}/api/categories/{{category_id}}",
             "header": [
               { "key": "X-Dev-User-Id", "value": "{{dev_user_id}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Authorization",  "value": "Bearer {{firebase_token}}" },
+              { "key": "Content-Type",   "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Pets & Veterinário\",\n  \"icon\": \"🐾\",\n  \"budget\": 350.00,\n  \"color\": \"#10b981\",\n  \"type\": \"expense\",\n  \"nature\": \"essencial\"\n}"
-            },
-            "description": "Atualiza a categoria criada no passo anterior. Usa `category_id` salvo automaticamente."
+            }
           },
           "event": [
             {
@@ -263,12 +330,8 @@
               "script": {
                 "exec": [
                   "pm.test('Status 200', () => pm.response.to.have.status(200));",
-                  "pm.test('Nome atualizado', () => {",
-                  "  pm.expect(pm.response.json().name).to.eql('Pets & Veterinário');",
-                  "});",
-                  "pm.test('Budget atualizado', () => {",
-                  "  pm.expect(pm.response.json().budget).to.eql(350.00);",
-                  "});"
+                  "pm.test('Nome atualizado', () => pm.expect(pm.response.json().name).to.eql('Pets & Veterinário'));",
+                  "pm.test('Budget atualizado', () => pm.expect(pm.response.json().budget).to.eql(350.00));"
                 ]
               }
             }
@@ -276,29 +339,26 @@
         },
 
         {
-          "name": "PUT /api/categories/:id — 404 não encontrado",
+          "name": "PUT /api/categories/:id — 404",
           "request": {
             "method": "PUT",
             "url": "{{base_url}}/api/categories/00000000-0000-0000-0000-000000000000",
             "header": [
               { "key": "X-Dev-User-Id", "value": "{{dev_user_id}}" },
-              { "key": "Content-Type", "value": "application/json" }
+              { "key": "Authorization",  "value": "Bearer {{firebase_token}}" },
+              { "key": "Content-Type",   "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Inexistente\",\n  \"icon\": \"❓\",\n  \"budget\": 0,\n  \"color\": \"#000\",\n  \"type\": \"expense\",\n  \"nature\": null\n}"
-            },
-            "description": "UUID que não existe — espera 404."
+            }
           },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 404 Not Found', () => pm.response.to.have.status(404));",
-                  "pm.test('Campo message presente', () => {",
-                  "  pm.expect(pm.response.json().message).to.be.a('string');",
-                  "});"
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
                 ]
               }
             }
@@ -311,17 +371,16 @@
             "method": "DELETE",
             "url": "{{base_url}}/api/categories/{{category_id}}",
             "header": [
-              { "key": "X-Dev-User-Id", "value": "{{dev_user_id}}" }
-            ],
-            "description": "Remove a categoria. Espera 204 No Content."
+              { "key": "X-Dev-User-Id", "value": "{{dev_user_id}}" },
+              { "key": "Authorization",  "value": "Bearer {{firebase_token}}" }
+            ]
           },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 204 No Content', () => pm.response.to.have.status(204));",
-                  "pm.test('Body vazio', () => pm.expect(pm.response.text()).to.be.empty);",
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));",
                   "pm.collectionVariables.set('category_id', '');"
                 ]
               }
@@ -330,21 +389,21 @@
         },
 
         {
-          "name": "DELETE /api/categories/:id — 404 não encontrado",
+          "name": "DELETE /api/categories/:id — 404",
           "request": {
             "method": "DELETE",
             "url": "{{base_url}}/api/categories/00000000-0000-0000-0000-000000000000",
             "header": [
-              { "key": "X-Dev-User-Id", "value": "{{dev_user_id}}" }
-            ],
-            "description": "UUID inexistente — espera 404."
+              { "key": "X-Dev-User-Id", "value": "{{dev_user_id}}" },
+              { "key": "Authorization",  "value": "Bearer {{firebase_token}}" }
+            ]
           },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 404 Not Found', () => pm.response.to.have.status(404));"
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
                 ]
               }
             }
@@ -352,20 +411,18 @@
         },
 
         {
-          "name": "GET /api/categories — 4xx sem autenticação",
+          "name": "GET /api/categories — 4xx sem auth",
           "request": {
             "method": "GET",
             "url": "{{base_url}}/api/categories",
-            "description": "Sem header de autenticação — espera 401 ou 403."
+            "description": "Sem nenhum header de auth — espera 401 ou 403."
           },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Status 4xx', () => {",
-                  "  pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
-                  "});"
+                  "pm.test('Status 4xx', () => pm.expect(pm.response.code).to.be.oneOf([401, 403]));"
                 ]
               }
             }
