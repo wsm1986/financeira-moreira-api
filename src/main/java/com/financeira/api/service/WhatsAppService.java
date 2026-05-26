@@ -37,8 +37,8 @@ public class WhatsAppService {
     @Async
     public CompletableFuture<String> enviarAsync(String mensagem) {
         if (phone.isBlank() || apiKey.isBlank()) {
-            log.warn("WhatsApp não configurado (CALLMEBOT_PHONE/APIKEY ausentes)");
-            return CompletableFuture.completedFuture("não configurado");
+            log.warn("WhatsApp nao configurado (CALLMEBOT_PHONE/APIKEY ausentes no Render)");
+            return CompletableFuture.completedFuture("nao_configurado");
         }
 
         String texto = URLEncoder.encode(mensagem, StandardCharsets.UTF_8);
