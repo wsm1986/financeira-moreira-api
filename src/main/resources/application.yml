@@ -4,3 +4,7 @@ server:
 spring:
   application:
     name: financeira-moreira-api
+
+callmebot:
+  phone: ${CALLMEBOT_PHONE}
+  apikey: ${CALLMEBOT_APIKEY}
