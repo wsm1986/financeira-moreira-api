@@ -1,11 +1,12 @@
 spring:
   datasource:
-    # DATABASE_URL deve ser a Internal Database URL do Render (sem prefixo jdbc:)
-    # Formato: postgresql://user:password@host/db
-    # O yaml adiciona jdbc: na frente para formar uma JDBC URL valida.
-    # NUNCA commitar a URL com usuario/senha — configure como variavel de ambiente no Render.
-    url: jdbc:${DATABASE_URL}
+    url: jdbc:postgresql://${DB_HOST}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASS}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 5
   jpa:
     hibernate:
       ddl-auto: update
