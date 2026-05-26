@@ -5,9 +5,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
 
+import java.util.HashMap;
 import java.util.Map;
 
-// Mantém /api/notificacoes por compatibilidade + expõe /api/whatsapp que o portal usa
+/**
+ * Expoe endpoints de WhatsApp em /api/whatsapp/* (usado pelo portal)
+ * e mantém /api/notificacoes/* por compatibilidade.
+ */
 @RestController
 public class NotificacaoController {
 
@@ -17,61 +21,90 @@ public class NotificacaoController {
         this.whatsAppService = whatsAppService;
     }
 
-    /** POST /api/whatsapp/test — usado pelo portal */
+    /** POST /api/whatsapp/test e /api/notificacoes/teste */
     @PostMapping({"/api/whatsapp/test", "/api/notificacoes/teste"})
     public DeferredResult<ResponseEntity<Map<String, Object>>> test() {
         DeferredResult<ResponseEntity<Map<String, Object>>> result = new DeferredResult<>(20_000L);
 
-        result.onTimeout(() ->
-            result.setErrorResult(ResponseEntity.status(504)
-                    .body(Map.of("ok", false, "message", "CallMeBot demorou demais (timeout 20s)")))
-        );
+        result.onTimeout(() -> {
+            Map<String, Object> body = new HashMap<>();
+            body.put("ok", false);
+            body.put("message", "CallMeBot demorou demais (timeout 20s)");
+            result.setErrorResult(ResponseEntity.status(504).body(body));
+        });
 
-        whatsAppService.enviarAsync("✅ Financeira Moreira — backend online e configurado!")
+        whatsAppService.enviarAsync("Financeira Moreira - backend online!")
                 .thenAccept(status -> {
                     boolean ok = "ok".equals(status);
-                    int httpStatus = ok ? 200 : ("nao_configurado".equals(status) ? 503 : 502);
-                    result.setResult(ResponseEntity.status(httpStatus)
-                            .body(Map.of("ok", ok, "status", status,
-                                    "message", switch (status) {
-                                        case "ok"             -> "Mensagem enviada com sucesso!";
-                                        case "nao_configurado"-> "CALLMEBOT_PHONE e CALLMEBOT_APIKEY não configurados no Render";
-                                        default               -> "CallMeBot retornou erro: " + status;
-                                    })));
+                    boolean notConfigured = "nao_configurado".equals(status);
+                    int httpStatus = ok ? 200 : (notConfigured ? 503 : 502);
+
+                    String message;
+                    if (ok) {
+                        message = "Mensagem enviada com sucesso!";
+                    } else if (notConfigured) {
+                        message = "Configure CALLMEBOT_PHONE e CALLMEBOT_APIKEY no Render";
+                    } else {
+                        message = "CallMeBot retornou erro: " + status;
+                    }
+
+                    Map<String, Object> body = new HashMap<>();
+                    body.put("ok", ok);
+                    body.put("status", status);
+                    body.put("message", message);
+                    result.setResult(ResponseEntity.status(httpStatus).body(body));
                 })
                 .exceptionally(ex -> {
-                    result.setErrorResult(ResponseEntity.status(500)
-                            .body(Map.of("ok", false, "message", ex.getMessage())));
+                    Map<String, Object> body = new HashMap<>();
+                    body.put("ok", false);
+                    body.put("message", ex.getMessage() != null ? ex.getMessage() : "Erro desconhecido");
+                    result.setErrorResult(ResponseEntity.status(500).body(body));
                     return null;
                 });
 
         return result;
     }
 
-    /** POST /api/whatsapp/send — usado pelo portal */
+    /** POST /api/whatsapp/send e /api/notificacoes/enviar */
     @PostMapping({"/api/whatsapp/send", "/api/notificacoes/enviar"})
     public DeferredResult<ResponseEntity<Map<String, Object>>> send(@RequestBody Map<String, String> body) {
-        String mensagem = body.getOrDefault("mensagem", "Olá do Financeira Moreira!");
+        String mensagem = body.getOrDefault("mensagem", "Ola do Financeira Moreira!");
         DeferredResult<ResponseEntity<Map<String, Object>>> result = new DeferredResult<>(20_000L);
 
-        result.onTimeout(() ->
-            result.setErrorResult(ResponseEntity.status(504)
-                    .body(Map.of("ok", false, "message", "Timeout após 20s")))
-        );
+        result.onTimeout(() -> {
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("ok", false);
+            resp.put("message", "Timeout apos 20s");
+            result.setErrorResult(ResponseEntity.status(504).body(resp));
+        });
 
         whatsAppService.enviarAsync(mensagem)
                 .thenAccept(status -> {
                     boolean ok = "ok".equals(status);
-                    int httpStatus = ok ? 200 : ("nao_configurado".equals(status) ? 503 : 502);
-                    result.setResult(ResponseEntity.status(httpStatus)
-                            .body(Map.of("ok", ok, "status", status, "mensagem", mensagem,
-                                    "message", ok ? "Enviado!" : "nao_configurado".equals(status)
-                                            ? "Configure CALLMEBOT_PHONE e CALLMEBOT_APIKEY no Render"
-                                            : "Erro ao enviar: " + status)));
+                    boolean notConfigured = "nao_configurado".equals(status);
+                    int httpStatus = ok ? 200 : (notConfigured ? 503 : 502);
+
+                    String message;
+                    if (ok) {
+                        message = "Enviado!";
+                    } else if (notConfigured) {
+                        message = "Configure CALLMEBOT_PHONE e CALLMEBOT_APIKEY no Render";
+                    } else {
+                        message = "Erro ao enviar: " + status;
+                    }
+
+                    Map<String, Object> resp = new HashMap<>();
+                    resp.put("ok", ok);
+                    resp.put("status", status);
+                    resp.put("mensagem", mensagem);
+                    resp.put("message", message);
+                    result.setResult(ResponseEntity.status(httpStatus).body(resp));
                 })
                 .exceptionally(ex -> {
-                    result.setErrorResult(ResponseEntity.status(500)
-                            .body(Map.of("ok", false, "message", ex.getMessage())));
+                    Map<String, Object> resp = new HashMap<>();
+                    resp.put("ok", false);
+                    resp.put("message", ex.getMessage() != null ? ex.getMessage() : "Erro desconhecido");
+                    result.setErrorResult(ResponseEntity.status(500).body(resp));
                     return null;
                 });
 
