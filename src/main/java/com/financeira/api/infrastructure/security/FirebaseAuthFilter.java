@@ -32,6 +32,13 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(auth);
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json;charset=UTF-8");
+            String msg = e.getMessage() != null
+                    ? e.getMessage().replace("\"", "'")
+                    : "Token inválido";
+            response.getWriter().write(
+                "{\"error\":\"UNAUTHORIZED\",\"message\":\"" + msg + "\"}"
+            );
             return;
         }
         chain.doFilter(request, response);
