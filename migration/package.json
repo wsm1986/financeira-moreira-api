@@ -1,0 +1,17 @@
+{
+  "name": "financeira-migration",
+  "version": "1.0.0",
+  "description": "Migrador Firebase/Zustand JSON → PostgreSQL",
+  "scripts": {
+    "migrate": "ts-node migrate-firebase-to-postgres.ts"
+  },
+  "dependencies": {
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/pg": "^8.11.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
+  }
+}

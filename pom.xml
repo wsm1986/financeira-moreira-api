@@ -18,8 +18,8 @@
     <description>Backend da Financeira Moreira — Clean Architecture</description>
 
     <properties>
-        <java.version>17</java.version>
-        <jacoco.version>0.8.11</jacoco.version>
+        <java.version>21</java.version>
+        <jacoco.version>0.8.13</jacoco.version>
     </properties>
 
     <dependencies>
@@ -68,6 +68,13 @@
             <version>9.2.0</version>
         </dependency>
 
+        <!-- OpenAPI / Swagger UI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.5.0</version>
+        </dependency>
+
         <!-- Testes -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -96,6 +103,7 @@
                     <forkCount>1C</forkCount>
                     <reuseForks>true</reuseForks>
                     <failIfNoTests>false</failIfNoTests>
+                    <argLine>@{argLine} -Dnet.bytebuddy.experimental=true</argLine>
                 </configuration>
             </plugin>
 

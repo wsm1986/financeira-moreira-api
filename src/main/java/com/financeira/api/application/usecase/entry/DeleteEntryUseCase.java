@@ -1,0 +1,24 @@
+package com.financeira.api.application.usecase.entry;
+
+import com.financeira.api.domain.exception.ResourceNotFoundException;
+import com.financeira.api.domain.repository.EntryRepository;
+import org.springframework.stereotype.Service;
+
+import java.util.UUID;
+
+@Service
+public class DeleteEntryUseCase {
+
+    private final EntryRepository repository;
+
+    public DeleteEntryUseCase(EntryRepository repository) {
+        this.repository = repository;
+    }
+
+    public void execute(String userUid, UUID id) {
+        if (!repository.existsByIdAndUserUid(id, userUid)) {
+            throw new ResourceNotFoundException("Lançamento não encontrado");
+        }
+        repository.softDeleteByIdAndUserUid(id, userUid);
+    }
+}

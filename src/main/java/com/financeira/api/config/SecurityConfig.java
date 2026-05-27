@@ -24,9 +24,14 @@ public class SecurityConfig {
     private static final String[] PUBLIC_PATHS = {
             "/api/sync",
             "/api/version",
-            "/api/ping",        // wake-up / health check publico
+            "/api/ping",
             "/h2-console/**",
-            "/actuator/health"
+            "/actuator/health",
+            // Swagger UI / OpenAPI
+            "/swagger-ui.html",
+            "/swagger-ui/**",
+            "/v3/api-docs",
+            "/v3/api-docs/**"
     };
 
     @Bean

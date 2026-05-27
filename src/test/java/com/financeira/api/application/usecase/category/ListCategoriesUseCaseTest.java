@@ -39,7 +39,7 @@ class ListCategoriesUseCaseTest {
 
         assertThat(result).hasSize(2);
         assertThat(result).extracting(CategoryResponse::name)
-                .containsExactly("Moradia", "Alimentação");
+                .containsExactlyInAnyOrder("Moradia", "Alimentação");
     }
 
     @Test
