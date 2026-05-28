@@ -5,6 +5,8 @@ import com.financeira.api.application.dto.ImportPortalRequest.*;
 import com.financeira.api.application.dto.ImportPortalResponse;
 import com.financeira.api.domain.model.*;
 import com.financeira.api.domain.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,8 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class ImportPortalUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(ImportPortalUseCase.class);
 
     private final CategoryRepository categoryRepository;
     private final BankRepository bankRepository;
@@ -48,6 +52,13 @@ public class ImportPortalUseCase {
     }
 
     public ImportPortalResponse execute(String userUid, ImportPortalRequest request) {
+        log.info("Import iniciado para userUid={}, categories={}, entries={}, banks={}, cards={}",
+                userUid,
+                request.resolvedCategories().size(),
+                request.resolvedEntries().size(),
+                request.resolvedBanks().size(),
+                request.resolvedCards().size());
+
         List<String> warnings = new ArrayList<>();
 
         // 1. Categories

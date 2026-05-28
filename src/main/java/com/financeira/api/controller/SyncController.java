@@ -12,7 +12,7 @@ import java.util.Map;
 @RequestMapping("/api")
 public class SyncController {
 
-    private static final String BUILD = "c1a2b3d postgres+ping";
+    private static final String BUILD = "fix-upsert-v3-debug";
 
     @GetMapping("/sync")
     public String sync() {
