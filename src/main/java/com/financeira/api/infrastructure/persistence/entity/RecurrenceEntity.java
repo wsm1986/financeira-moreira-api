@@ -28,7 +28,7 @@ public class RecurrenceEntity {
     @Column(length = 10)
     private String icon;
 
-    @Column(name = "category_id", nullable = false)
+    @Column(name = "category_id")
     private UUID categoryId;
 
     @Column(nullable = false, length = 30)

@@ -27,7 +27,7 @@ class CreateInvestmentUseCaseTest {
     @Test
     void shouldCreateInvestment() {
         InvestmentRequest req = new InvestmentRequest("Tesouro IPCA+", "renda_fixa",
-                BigDecimal.valueOf(5000), BigDecimal.valueOf(5200), BigDecimal.valueOf(6.5),
+                BigDecimal.valueOf(5000), BigDecimal.valueOf(5200), "6.5",
                 null, null, false, "📈", "#34d399");
         Investment saved = new Investment(USER_UID, "Tesouro IPCA+", "renda_fixa",
                 BigDecimal.valueOf(5000), BigDecimal.valueOf(5200), BigDecimal.valueOf(6.5),

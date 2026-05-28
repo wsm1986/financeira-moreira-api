@@ -12,10 +12,10 @@ public record BillRequest(
         @NotBlank String name,
         @NotNull @Positive BigDecimal amount,
         @NotNull LocalDate dueDate,
-        @NotNull UUID categoryId,
+        UUID categoryId,          // nullable — categoria é opcional
         Boolean paid,
         LocalDate paidDate,
         UUID bankId,
         String notes,
-        String type
+        String type               // "pagar" | "receber" — default: "pagar"
 ) {}

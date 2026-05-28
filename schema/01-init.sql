@@ -146,7 +146,7 @@ CREATE TABLE IF NOT EXISTS recurrences (
   user_uid    VARCHAR(255) NOT NULL,
   name        VARCHAR(255) NOT NULL,
   icon        VARCHAR(10)  NOT NULL DEFAULT '🔄',
-  category_id UUID         NOT NULL,
+  category_id UUID,                -- opcional: portal pode não enviar categoria
   kind        VARCHAR(30)  NOT NULL CHECK (kind IN (
     'receita', 'debito_avista', 'debito_recorrente',
     'credito_avista', 'credito_parcelado', 'recorrente_cartao',
@@ -163,7 +163,7 @@ CREATE TABLE IF NOT EXISTS recurrences (
   updated_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
   deleted_at  TIMESTAMP WITH TIME ZONE,
   FOREIGN KEY (user_uid)    REFERENCES users(uid)       ON DELETE CASCADE,
-  FOREIGN KEY (category_id) REFERENCES categories(id)   ON DELETE RESTRICT,
+  FOREIGN KEY (category_id) REFERENCES categories(id)   ON DELETE SET NULL,
   FOREIGN KEY (card_id)     REFERENCES credit_cards(id) ON DELETE SET NULL,
   FOREIGN KEY (account_id)  REFERENCES banks(id)        ON DELETE SET NULL
 );
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS bills (
   name        VARCHAR(255) NOT NULL,
   amount      NUMERIC(19,2) NOT NULL CHECK (amount > 0),
   due_date    DATE         NOT NULL,
-  category_id UUID         NOT NULL,
+  category_id UUID,                -- opcional: portal pode não enviar categoria
   paid        BOOLEAN      NOT NULL DEFAULT FALSE,
   paid_date   DATE,
   bank_id     UUID,
@@ -188,7 +188,7 @@ CREATE TABLE IF NOT EXISTS bills (
   updated_at  TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
   deleted_at  TIMESTAMP WITH TIME ZONE,
   FOREIGN KEY (user_uid)    REFERENCES users(uid)     ON DELETE CASCADE,
-  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT,
+  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
   FOREIGN KEY (bank_id)     REFERENCES banks(id)      ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS idx_bills_user_uid   ON bills(user_uid);
