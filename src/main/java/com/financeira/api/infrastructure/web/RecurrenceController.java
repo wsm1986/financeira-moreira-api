@@ -5,8 +5,6 @@ import com.financeira.api.application.dto.RecurrenceResponse;
 import com.financeira.api.application.usecase.recurrence.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -48,23 +46,11 @@ public class RecurrenceController {
     @PostMapping
     @Operation(
         summary = "Criar contrato de recorrência",
-        description = "Cria o contrato. As entradas mensais devem ser criadas separadamente via `POST /api/entries` com `recurrenceId` apontando para este contrato.",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = """
-                    {
-                      "name": "Netflix",
-                      "icon": "📺",
-                      "categoryId": "a1b2c3d4-0000-0000-0000-000000000001",
-                      "kind": "recorrente_cartao",
-                      "amount": 55.90,
-                      "cardId": "c3d4e5f6-0000-0000-0000-000000000001",
-                      "startMonth": "2026-01",
-                      "endMonth": "2026-12",
-                      "months": 12,
-                      "active": true
-                    }
-                    """)))
+        description = "Cria o contrato. As entradas mensais devem ser criadas separadamente via `POST /api/entries` com `recurrenceId`.",
+        responses = {
+            @ApiResponse(responseCode = "201", description = "Recorrência criada"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos")
+        }
     )
     public ResponseEntity<RecurrenceResponse> create(@Valid @RequestBody RecurrenceRequest request, Authentication auth) {
         return ResponseEntity.status(HttpStatus.CREATED).body(create.execute(uid(auth), request));
@@ -90,10 +76,7 @@ public class RecurrenceController {
     }
 
     @PatchMapping("/{id}/cancel")
-    @Operation(
-        summary = "Cancelar recorrência",
-        description = "Define `active=false`. As entradas já geradas são preservadas. Equivale ao `cancelRecurrence` do portal."
-    )
+    @Operation(summary = "Cancelar recorrência", description = "Define `active=false`. Entradas já geradas são preservadas. Equivale ao `cancelRecurrence` do portal.")
     public RecurrenceResponse cancel(
             @Parameter(description = "UUID da recorrência") @PathVariable UUID id,
             Authentication auth) {

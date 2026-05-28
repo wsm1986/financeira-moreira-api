@@ -5,8 +5,6 @@ import com.financeira.api.application.dto.EntryResponse;
 import com.financeira.api.application.usecase.entry.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -21,7 +19,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/entries")
 @Tag(name = "Lançamentos", description = """
-    Lançamentos financeiros mensais. Tipos suportados (kind):
+    Lançamentos financeiros mensais. `kind` suportados:
     receita | debito_avista | debito_recorrente | credito_avista |
     credito_parcelado | recorrente_cartao | pagamento_fatura | transferencia
     """)
@@ -46,27 +44,8 @@ public class EntryController {
     @GetMapping
     @Operation(
         summary = "Listar lançamentos por mês",
-        description = "Retorna todos os lançamentos do mês informado. Equivale a `selectEntriesByMonth(monthKey)` no portal.",
-        parameters = @Parameter(name = "monthKey", description = "Mês no formato YYYY-MM (ex: 2026-05)", required = true, example = "2026-05"),
-        responses = @ApiResponse(responseCode = "200", description = "Lista de lançamentos do mês",
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = """
-                    [
-                      {
-                        "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-                        "monthKey": "2026-05",
-                        "kind": "debito_avista",
-                        "name": "Supermercado",
-                        "categoryId": "a1b2c3d4-0000-0000-0000-000000000001",
-                        "amount": 350.00,
-                        "entryDate": "2026-05-10",
-                        "icon": "🛒",
-                        "accountId": "b2c3d4e5-0000-0000-0000-000000000001",
-                        "isPaid": true,
-                        "isReconciled": false
-                      }
-                    ]
-                    """)))
+        description = "Retorna todos os lançamentos do mês. Equivale a `selectEntriesByMonth(monthKey)` no portal.",
+        parameters = @Parameter(name = "monthKey", description = "Mês no formato YYYY-MM", required = true, example = "2026-05")
     )
     public List<EntryResponse> listByMonth(
             @RequestParam String monthKey,
@@ -78,93 +57,17 @@ public class EntryController {
     @Operation(
         summary = "Criar lançamento",
         description = """
-            Cria um lançamento financeiro. Regras por `kind`:
-
-            - **receita** → `accountId` obrigatório
-            - **debito_avista / debito_recorrente** → `accountId` obrigatório
-            - **credito_avista** → `cardId` obrigatório
-            - **credito_parcelado** → `cardId` + `installmentTotal` + `installmentCurrent` + `installmentGroupId` obrigatórios
-            - **recorrente_cartao** → `cardId` + `recurrenceId` obrigatórios
-            - **pagamento_fatura** → `accountId` + `cardId` + `invoiceRef` (YYYY-MM) obrigatórios
-            - **transferencia** → `accountId` (origem) + `toAccountId` (destino) obrigatórios
+            Campos obrigatórios por `kind`:
+            - **receita / debito_avista / debito_recorrente** → `accountId`
+            - **credito_avista** → `cardId`
+            - **credito_parcelado** → `cardId`, `installmentTotal`, `installmentCurrent`, `installmentGroupId`
+            - **recorrente_cartao** → `cardId`, `recurrenceId`
+            - **pagamento_fatura** → `accountId`, `cardId`, `invoiceRef` (YYYY-MM)
+            - **transferencia** → `accountId` (origem), `toAccountId` (destino)
             """,
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            content = @Content(mediaType = "application/json",
-                examples = {
-                    @ExampleObject(name = "Débito à vista", value = """
-                        {
-                          "monthKey": "2026-05",
-                          "kind": "debito_avista",
-                          "name": "Supermercado",
-                          "categoryId": "a1b2c3d4-0000-0000-0000-000000000001",
-                          "amount": 350.00,
-                          "entryDate": "2026-05-10",
-                          "icon": "🛒",
-                          "accountId": "b2c3d4e5-0000-0000-0000-000000000001",
-                          "isPaid": true
-                        }
-                        """),
-                    @ExampleObject(name = "Crédito parcelado (3x)", value = """
-                        {
-                          "monthKey": "2026-06",
-                          "kind": "credito_parcelado",
-                          "name": "iPhone 16 — 1/3",
-                          "categoryId": "a1b2c3d4-0000-0000-0000-000000000002",
-                          "amount": 1400.00,
-                          "entryDate": "2026-06-08",
-                          "icon": "📱",
-                          "cardId": "c3d4e5f6-0000-0000-0000-000000000001",
-                          "billingMonth": "2026-06",
-                          "installmentTotal": 3,
-                          "installmentCurrent": 1,
-                          "installmentGroupId": "d4e5f6a7-0000-0000-0000-000000000001"
-                        }
-                        """),
-                    @ExampleObject(name = "Pagamento de fatura", value = """
-                        {
-                          "monthKey": "2026-06",
-                          "kind": "pagamento_fatura",
-                          "name": "Pagamento Nubank Jun/26",
-                          "categoryId": "a1b2c3d4-0000-0000-0000-000000000003",
-                          "amount": 1455.90,
-                          "entryDate": "2026-06-10",
-                          "icon": "💳",
-                          "accountId": "b2c3d4e5-0000-0000-0000-000000000001",
-                          "cardId": "c3d4e5f6-0000-0000-0000-000000000001",
-                          "invoiceRef": "2026-06",
-                          "isPaid": true
-                        }
-                        """),
-                    @ExampleObject(name = "Transferência entre contas", value = """
-                        {
-                          "monthKey": "2026-05",
-                          "kind": "transferencia",
-                          "name": "TED para poupança",
-                          "categoryId": "a1b2c3d4-0000-0000-0000-000000000004",
-                          "amount": 500.00,
-                          "entryDate": "2026-05-15",
-                          "icon": "↔️",
-                          "accountId": "b2c3d4e5-0000-0000-0000-000000000001",
-                          "toAccountId": "b2c3d4e5-0000-0000-0000-000000000002"
-                        }
-                        """),
-                    @ExampleObject(name = "Receita (salário)", value = """
-                        {
-                          "monthKey": "2026-05",
-                          "kind": "receita",
-                          "name": "Salário",
-                          "categoryId": "a1b2c3d4-0000-0000-0000-000000000005",
-                          "amount": 8500.00,
-                          "entryDate": "2026-05-05",
-                          "icon": "💵",
-                          "accountId": "b2c3d4e5-0000-0000-0000-000000000001",
-                          "isPaid": true
-                        }
-                        """)
-                })),
         responses = {
             @ApiResponse(responseCode = "201", description = "Lançamento criado"),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos (monthKey, kind ou amount)")
+            @ApiResponse(responseCode = "400", description = "Dados inválidos")
         }
     )
     public ResponseEntity<EntryResponse> create(@Valid @RequestBody EntryRequest request, Authentication auth) {
@@ -172,7 +75,7 @@ public class EntryController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar lançamento", description = "Atualiza todos os campos de um lançamento existente.")
+    @Operation(summary = "Atualizar lançamento")
     public EntryResponse update(
             @Parameter(description = "UUID do lançamento") @PathVariable UUID id,
             @Valid @RequestBody EntryRequest request,
@@ -181,7 +84,7 @@ public class EntryController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Excluir lançamento (soft delete)", description = "Marca o lançamento como excluído. Equivale ao `softDeleteEntry` do portal.")
+    @Operation(summary = "Excluir lançamento (soft delete)", description = "Equivale ao `softDeleteEntry` do portal.")
     @ApiResponse(responseCode = "204", description = "Excluído com sucesso")
     public ResponseEntity<Void> delete(
             @Parameter(description = "UUID do lançamento") @PathVariable UUID id,

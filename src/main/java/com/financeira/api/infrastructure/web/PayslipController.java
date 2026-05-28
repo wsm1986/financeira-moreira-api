@@ -5,8 +5,6 @@ import com.financeira.api.application.dto.PayslipResponse;
 import com.financeira.api.application.usecase.payslip.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,7 +31,7 @@ public class PayslipController {
     }
 
     @GetMapping
-    @Operation(summary = "Listar holerites", description = "Retorna todos os holerites do usuário em ordem cronológica. Equivale a `store.payslips`.")
+    @Operation(summary = "Listar holerites", description = "Retorna todos os holerites em ordem cronológica. Equivale a `store.payslips`.")
     public List<PayslipResponse> listAll(Authentication auth) {
         return list.execute(uid(auth));
     }
@@ -43,41 +41,10 @@ public class PayslipController {
         summary = "Salvar holerite (criar ou atualizar)",
         description = """
             Se já existir holerite para a `competencia`, **atualiza**. Caso contrário, **cria**.
-
             - `extras`: proventos variáveis (PLR, horas extras, gratificações)
             - `outrosDescontos`: descontos livres não mapeados nos campos fixos
-            - `valeRefeicao`: provento em dinheiro (não desconto)
             - Todos os campos numéricos em R$ — omitir ou 0.00 para não aplicar
-            """,
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = """
-                    {
-                      "competencia": "2026-05",
-                      "salarioBase": 8500.00,
-                      "extras": [
-                        { "descricao": "PLR Trimestral", "valor": 600.00 }
-                      ],
-                      "inss": 935.00,
-                      "irrf": 1250.00,
-                      "pensaoAlimenticia": 0.00,
-                      "emprestimoConsignado": 0.00,
-                      "assistenciaMedica": 250.00,
-                      "coparticipacao": 85.00,
-                      "pgbl": 0.00,
-                      "seguroVida": 45.00,
-                      "valeTransporte": 0.00,
-                      "valeRefeicao": 600.00,
-                      "outrosDescontos": [
-                        { "descricao": "Clube de Benefícios", "valor": 30.00 }
-                      ],
-                      "fgts": 680.00,
-                      "totalProventos": 9700.00,
-                      "totalDescontos": 2595.00,
-                      "liquido": 7105.00,
-                      "observacoes": "Mês com PLR"
-                    }
-                    """)))
+            """
     )
     public PayslipResponse save(@Valid @RequestBody PayslipRequest request, Authentication auth) {
         return save.execute(uid(auth), request);

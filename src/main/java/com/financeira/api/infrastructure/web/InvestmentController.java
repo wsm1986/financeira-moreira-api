@@ -5,8 +5,6 @@ import com.financeira.api.application.dto.InvestmentResponse;
 import com.financeira.api.application.usecase.investment.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -45,38 +43,11 @@ public class InvestmentController {
     @PostMapping
     @Operation(
         summary = "Criar investimento",
-        description = "`amount` = valor investido, `currentValue` = valor atual de mercado. `rate` em % a.a. (opcional).",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            content = @Content(mediaType = "application/json",
-                examples = {
-                    @ExampleObject(name = "Renda fixa", value = """
-                        {
-                          "name": "CDB Bradesco 110% CDI",
-                          "type": "renda_fixa",
-                          "amount": 10000.00,
-                          "currentValue": 10620.00,
-                          "rate": 13.2,
-                          "maturity": "2026-12-01",
-                          "bankId": "b2c3d4e5-0000-0000-0000-000000000001",
-                          "isEmergencyReserve": false,
-                          "icon": "📊",
-                          "color": "#34d399"
-                        }
-                        """),
-                    @ExampleObject(name = "Reserva de emergência", value = """
-                        {
-                          "name": "Reserva de Emergência",
-                          "type": "renda_fixa",
-                          "amount": 20000.00,
-                          "currentValue": 20800.00,
-                          "rate": 12.5,
-                          "bankId": "b2c3d4e5-0000-0000-0000-000000000002",
-                          "isEmergencyReserve": true,
-                          "icon": "🛡️",
-                          "color": "#7c8dff"
-                        }
-                        """)
-                }))
+        description = "`amount` = valor investido, `currentValue`/`returns` = valor atual de mercado. `rateStr` aceita string livre (ex: \"CDI 120%\").",
+        responses = {
+            @ApiResponse(responseCode = "201", description = "Investimento criado"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos")
+        }
     )
     public ResponseEntity<InvestmentResponse> create(@Valid @RequestBody InvestmentRequest request, Authentication auth) {
         return ResponseEntity.status(HttpStatus.CREATED).body(create.execute(uid(auth), request));

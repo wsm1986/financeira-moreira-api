@@ -5,8 +5,6 @@ import com.financeira.api.application.dto.BillResponse;
 import com.financeira.api.application.usecase.bill.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -48,30 +46,10 @@ public class BillController {
     @PostMapping
     @Operation(
         summary = "Criar conta a pagar/receber",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            content = @Content(mediaType = "application/json",
-                examples = {
-                    @ExampleObject(name = "Conta a pagar", value = """
-                        {
-                          "name": "Aluguel",
-                          "amount": 1800.00,
-                          "dueDate": "2026-06-05",
-                          "categoryId": "a1b2c3d4-0000-0000-0000-000000000001",
-                          "bankId": "b2c3d4e5-0000-0000-0000-000000000001",
-                          "notes": "Vencimento dia 5",
-                          "type": "pagar"
-                        }
-                        """),
-                    @ExampleObject(name = "Conta a receber", value = """
-                        {
-                          "name": "Freelance React",
-                          "amount": 3500.00,
-                          "dueDate": "2026-06-15",
-                          "categoryId": "a1b2c3d4-0000-0000-0000-000000000002",
-                          "type": "receber"
-                        }
-                        """)
-                }))
+        responses = {
+            @ApiResponse(responseCode = "201", description = "Conta criada"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos")
+        }
     )
     public ResponseEntity<BillResponse> create(@Valid @RequestBody BillRequest request, Authentication auth) {
         return ResponseEntity.status(HttpStatus.CREATED).body(create.execute(uid(auth), request));
@@ -97,10 +75,7 @@ public class BillController {
     }
 
     @PatchMapping("/{id}/pay")
-    @Operation(
-        summary = "Marcar como paga",
-        description = "Define `paid=true` e `paidDate=hoje`. Equivale ao `markBillPaid` do portal."
-    )
+    @Operation(summary = "Marcar como paga", description = "Define `paid=true` e `paidDate=hoje`. Equivale ao `markBillPaid` do portal.")
     public BillResponse markPaid(
             @Parameter(description = "UUID da conta") @PathVariable UUID id,
             Authentication auth) {

@@ -5,8 +5,6 @@ import com.financeira.api.application.dto.CardResponse;
 import com.financeira.api.application.usecase.card.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -46,21 +44,10 @@ public class CardController {
     @Operation(
         summary = "Criar cartão",
         description = "`closingDay` e `dueDay` entre 1 e 28. `cardLimit` é o limite total do cartão.",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = """
-                    {
-                      "name": "Nubank",
-                      "brand": "mastercard",
-                      "lastDigits": "1234",
-                      "cardLimit": 8000.00,
-                      "closingDay": 3,
-                      "dueDay": 10,
-                      "color": "#8a05be",
-                      "icon": "💜",
-                      "bankId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
-                    }
-                    """)))
+        responses = {
+            @ApiResponse(responseCode = "201", description = "Cartão criado"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos")
+        }
     )
     public ResponseEntity<CardResponse> create(@Valid @RequestBody CardRequest request, Authentication auth) {
         return ResponseEntity.status(HttpStatus.CREATED).body(create.execute(uid(auth), request));

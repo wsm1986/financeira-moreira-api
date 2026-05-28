@@ -5,9 +5,6 @@ import com.financeira.api.application.dto.BankResponse;
 import com.financeira.api.application.usecase.bank.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -43,24 +40,7 @@ public class BankController {
     }
 
     @GetMapping
-    @Operation(
-        summary = "Listar contas",
-        description = "Retorna todas as contas ativas do usuário autenticado. Equivale a `store.banks` no portal.",
-        responses = @ApiResponse(responseCode = "200", description = "Lista de contas",
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = """
-                    [
-                      {
-                        "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-                        "name": "Bradesco",
-                        "type": "corrente",
-                        "balance": 12450.00,
-                        "color": "#e63946",
-                        "icon": "🏦"
-                      }
-                    ]
-                    """)))
-    )
+    @Operation(summary = "Listar contas", description = "Retorna todas as contas ativas do usuário autenticado. Equivale a `store.banks` no portal.")
     public List<BankResponse> listAll(Authentication auth) {
         return list.execute(uid(auth));
     }
@@ -68,18 +48,7 @@ public class BankController {
     @PostMapping
     @Operation(
         summary = "Criar conta",
-        description = "Cria nova conta bancária. `type` deve ser: `corrente | poupanca | investimento | digital`.",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = """
-                    {
-                      "name": "Nubank",
-                      "type": "digital",
-                      "balance": 1800.00,
-                      "color": "#8a05be",
-                      "icon": "💜"
-                    }
-                    """))),
+        description = "`type`: corrente | poupanca | investimento | digital",
         responses = {
             @ApiResponse(responseCode = "201", description = "Conta criada"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos")
@@ -90,7 +59,7 @@ public class BankController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar conta", description = "Atualiza nome, tipo, saldo, cor ou ícone da conta.")
+    @Operation(summary = "Atualizar conta")
     public BankResponse update(
             @Parameter(description = "UUID da conta") @PathVariable UUID id,
             @Valid @RequestBody BankRequest request,
@@ -99,7 +68,7 @@ public class BankController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Excluir conta (soft delete)", description = "Marca a conta como excluída (deleted_at). Lançamentos vinculados são preservados.")
+    @Operation(summary = "Excluir conta (soft delete)", description = "Marca a conta como excluída. Lançamentos vinculados são preservados.")
     @ApiResponse(responseCode = "204", description = "Excluída com sucesso")
     public ResponseEntity<Void> delete(
             @Parameter(description = "UUID da conta") @PathVariable UUID id,
@@ -109,15 +78,7 @@ public class BankController {
     }
 
     @PutMapping("/{id}/balance")
-    @Operation(
-        summary = "Ajustar saldo",
-        description = "Sobrescreve o saldo da conta diretamente (usado para reconciliação manual com extrato).",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = """
-                    { "balance": 15200.00 }
-                    """)))
-    )
+    @Operation(summary = "Ajustar saldo", description = "Sobrescreve o saldo diretamente. Usado para reconciliação manual com extrato.")
     public BankResponse adjustBalance(
             @Parameter(description = "UUID da conta") @PathVariable UUID id,
             @RequestBody Map<String, BigDecimal> body,

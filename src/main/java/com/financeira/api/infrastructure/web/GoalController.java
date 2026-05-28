@@ -5,8 +5,6 @@ import com.financeira.api.application.dto.GoalResponse;
 import com.financeira.api.application.usecase.goal.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -51,20 +49,10 @@ public class GoalController {
     @Operation(
         summary = "Criar meta",
         description = "`color` aceita hex (`#fbbf24`) ou CSS variable (`var(--amber)`) do portal.",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = """
-                    {
-                      "name": "Viagem Europa",
-                      "icon": "✈️",
-                      "targetAmount": 8000.00,
-                      "currentAmount": 3200.00,
-                      "deadline": "2026-12",
-                      "color": "#fbbf24",
-                      "status": "on-track",
-                      "notes": "Voo + hotel em Lisboa"
-                    }
-                    """)))
+        responses = {
+            @ApiResponse(responseCode = "201", description = "Meta criada"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos")
+        }
     )
     public ResponseEntity<GoalResponse> create(@Valid @RequestBody GoalRequest request, Authentication auth) {
         return ResponseEntity.status(HttpStatus.CREATED).body(create.execute(uid(auth), request));
@@ -90,15 +78,7 @@ public class GoalController {
     }
 
     @PostMapping("/{id}/progress")
-    @Operation(
-        summary = "Adicionar progresso",
-        description = "Soma `amount` ao `currentAmount` da meta. Equivale ao `addGoalProgress` do portal.",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            content = @Content(mediaType = "application/json",
-                examples = @ExampleObject(value = """
-                    { "amount": 500.00 }
-                    """)))
-    )
+    @Operation(summary = "Adicionar progresso", description = "Soma `amount` ao `currentAmount` da meta. Equivale ao `addGoalProgress` do portal.")
     public GoalResponse addProgress(
             @Parameter(description = "UUID da meta") @PathVariable UUID id,
             @RequestBody Map<String, BigDecimal> body,
