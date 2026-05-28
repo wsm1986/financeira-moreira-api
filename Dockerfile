@@ -1,4 +1,4 @@
-FROM maven:3.9.6-eclipse-temurin-17-alpine AS build
+FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
 # cache de dependências separado do código-fonte
@@ -9,7 +9,7 @@ COPY src ./src
 RUN mvn package -DskipTests --no-transfer-progress
 
 # ─── Imagem final — só JRE, sem Maven ───────────────────────────────
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # usuário não-root por segurança
