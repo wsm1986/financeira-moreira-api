@@ -30,6 +30,7 @@ public class SecurityConfig {
             "/api/sync",
             "/api/version",
             "/api/ping",
+            "/api/import/bypass",   // bypass temporário sem Firebase token
             "/h2-console/**",
             "/actuator/health",
             // Swagger UI / OpenAPI

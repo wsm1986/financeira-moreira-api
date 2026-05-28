@@ -6,6 +6,7 @@ import com.financeira.api.application.usecase.importportal.ImportPortalUseCase;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -14,6 +15,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/import")
 @Tag(name = "Migração / Import", description = "Importa dados do portal (JSON exportado pelo Zustand persist) para o banco de dados PostgreSQL")
 public class ImportController {
+
+    // Chave temporária para bypass sem Firebase token — remover após o import inicial
+    private static final String BYPASS_KEY = "FOLEGO_IMPORT_2026_WSMC";
 
     private final ImportPortalUseCase importUseCase;
 
@@ -47,6 +51,23 @@ public class ImportController {
             @RequestBody ImportPortalRequest request,
             Authentication auth) {
         return ResponseEntity.ok(importUseCase.execute(uid(auth), request));
+    }
+
+    /**
+     * Endpoint de bypass para importação sem Firebase token.
+     * Requer header X-Bypass-Key com a chave secreta e X-User-Uid com o UID do usuário.
+     * TEMPORÁRIO — remover após o import inicial.
+     */
+    @PostMapping("/bypass")
+    @Operation(hidden = true)
+    public ResponseEntity<ImportPortalResponse> importBypass(
+            @RequestBody ImportPortalRequest request,
+            @RequestHeader(value = "X-Bypass-Key", required = false) String key,
+            @RequestHeader(value = "X-User-Uid", required = false) String uid) {
+        if (!BYPASS_KEY.equals(key) || uid == null || uid.isBlank()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        return ResponseEntity.ok(importUseCase.execute(uid, request));
     }
 
     private String uid(Authentication auth) {

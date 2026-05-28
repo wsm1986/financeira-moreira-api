@@ -3,6 +3,7 @@ package com.financeira.api.application.usecase.importportal;
 import com.financeira.api.application.dto.ImportPortalRequest;
 import com.financeira.api.application.dto.ImportPortalRequest.*;
 import com.financeira.api.application.dto.ImportPortalResponse;
+import com.financeira.api.application.usecase.user.UpsertUserUseCase;
 import com.financeira.api.domain.model.*;
 import com.financeira.api.domain.repository.*;
 import org.slf4j.Logger;
@@ -30,6 +31,7 @@ public class ImportPortalUseCase {
     private final InvestmentRepository investmentRepository;
     private final GoalRepository goalRepository;
     private final PayslipRepository payslipRepository;
+    private final UpsertUserUseCase upsertUserUseCase;
 
     public ImportPortalUseCase(CategoryRepository categoryRepository,
                                BankRepository bankRepository,
@@ -39,7 +41,8 @@ public class ImportPortalUseCase {
                                BillRepository billRepository,
                                InvestmentRepository investmentRepository,
                                GoalRepository goalRepository,
-                               PayslipRepository payslipRepository) {
+                               PayslipRepository payslipRepository,
+                               UpsertUserUseCase upsertUserUseCase) {
         this.categoryRepository = categoryRepository;
         this.bankRepository = bankRepository;
         this.cardRepository = cardRepository;
@@ -49,6 +52,7 @@ public class ImportPortalUseCase {
         this.investmentRepository = investmentRepository;
         this.goalRepository = goalRepository;
         this.payslipRepository = payslipRepository;
+        this.upsertUserUseCase = upsertUserUseCase;
     }
 
     public ImportPortalResponse execute(String userUid, ImportPortalRequest request) {
@@ -58,6 +62,14 @@ public class ImportPortalUseCase {
                 request.resolvedEntries().size(),
                 request.resolvedBanks().size(),
                 request.resolvedCards().size());
+
+        // 0. Garante que o usuário existe na tabela users (evita FK violation)
+        try {
+            upsertUserUseCase.execute(userUid, userUid + "@import.folego", "Wellington Sousa");
+            log.info("User upsert OK: {}", userUid);
+        } catch (Exception e) {
+            log.warn("User upsert falhou (pode já existir): {}", e.getMessage());
+        }
 
         List<String> warnings = new ArrayList<>();
 
