@@ -1,5 +1,6 @@
 package com.financeira.api.infrastructure.security;
 
+import com.financeira.api.application.usecase.user.UpsertUserUseCase;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
 import jakarta.servlet.FilterChain;
@@ -15,6 +16,12 @@ import java.util.Collections;
 
 public class FirebaseAuthFilter extends OncePerRequestFilter {
 
+    private final UpsertUserUseCase upsertUser;
+
+    public FirebaseAuthFilter(UpsertUserUseCase upsertUser) {
+        this.upsertUser = upsertUser;
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -28,6 +35,10 @@ public class FirebaseAuthFilter extends OncePerRequestFilter {
         try {
             FirebaseToken decoded = FirebaseAuth.getInstance().verifyIdToken(token);
             String uid = decoded.getUid();
+            // Auto-upsert: garante que o usuário existe na tabela users antes de qualquer operação
+            upsertUser.execute(uid,
+                    decoded.getEmail() != null ? decoded.getEmail() : uid + "@firebase",
+                    decoded.getName()  != null ? decoded.getName()  : "Usuário");
             var auth = new UsernamePasswordAuthenticationToken(uid, null, Collections.emptyList());
             SecurityContextHolder.getContext().setAuthentication(auth);
         } catch (Exception e) {

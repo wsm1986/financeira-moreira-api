@@ -1,7 +1,9 @@
 package com.financeira.api.config;
 
+import com.financeira.api.application.usecase.user.UpsertUserUseCase;
 import com.financeira.api.infrastructure.security.DevAuthFilter;
 import com.financeira.api.infrastructure.security.FirebaseAuthFilter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,6 +22,9 @@ public class SecurityConfig {
 
     @Value("${app.auth.mode:dev}")
     private String authMode;
+
+    @Autowired
+    private UpsertUserUseCase upsertUserUseCase;
 
     private static final String[] PUBLIC_PATHS = {
             "/api/sync",
@@ -59,7 +64,7 @@ public class SecurityConfig {
         if ("dev".equals(authMode)) {
             http.addFilterBefore(new DevAuthFilter(), UsernamePasswordAuthenticationFilter.class);
         } else {
-            http.addFilterBefore(new FirebaseAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+            http.addFilterBefore(new FirebaseAuthFilter(upsertUserUseCase), UsernamePasswordAuthenticationFilter.class);
         }
 
         // H2 console precisa de frames no dev
