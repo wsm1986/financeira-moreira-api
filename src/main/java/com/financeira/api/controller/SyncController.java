@@ -12,7 +12,7 @@ import java.util.Map;
 @RequestMapping("/api")
 public class SyncController {
 
-    private static final String BUILD = "fix-upsert-v3-debug";
+    private static final String BUILD = "summary-endpoints-v3.4";
 
     @GetMapping("/sync")
     public String sync() {
