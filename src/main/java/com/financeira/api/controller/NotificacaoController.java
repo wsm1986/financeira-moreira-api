@@ -1,5 +1,6 @@
 package com.financeira.api.controller;
 
+import com.financeira.api.scheduler.ResumoFinanceiroScheduler;
 import com.financeira.api.service.WhatsAppService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +11,7 @@ import java.util.Map;
 /**
  * Expoe /api/whatsapp/test e /api/whatsapp/send (portal)
  * + /api/notificacoes/teste e /api/notificacoes/enviar (compatibilidade)
+ * + /api/scheduler/resumo para acionar o resumo diário manualmente
  *
  * Usa chamada sincrona para evitar o bug Spring Security + DeferredResult async dispatch
  * (o async dispatch perde o SecurityContext e retorna 401 mesmo com o request autenticado).
@@ -18,9 +20,28 @@ import java.util.Map;
 public class NotificacaoController {
 
     private final WhatsAppService whatsAppService;
+    private final ResumoFinanceiroScheduler resumoScheduler;
 
-    public NotificacaoController(WhatsAppService whatsAppService) {
-        this.whatsAppService = whatsAppService;
+    public NotificacaoController(WhatsAppService whatsAppService,
+                                 ResumoFinanceiroScheduler resumoScheduler) {
+        this.whatsAppService  = whatsAppService;
+        this.resumoScheduler  = resumoScheduler;
+    }
+
+    @PostMapping("/api/scheduler/resumo")
+    public ResponseEntity<Map<String, Object>> acionarResumoDiario() {
+        try {
+            resumoScheduler.enviarResumoDiario();
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("ok", true);
+            resp.put("message", "Resumo diário acionado com sucesso");
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("ok", false);
+            resp.put("message", "Erro ao acionar resumo: " + e.getMessage());
+            return ResponseEntity.status(500).body(resp);
+        }
     }
 
     @PostMapping({"/api/whatsapp/test", "/api/notificacoes/teste"})

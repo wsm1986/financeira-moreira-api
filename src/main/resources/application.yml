@@ -27,3 +27,6 @@ springdoc:
 callmebot:
   phone: ${CALLMEBOT_PHONE:}
   apikey: ${CALLMEBOT_APIKEY:}
+
+notificacao:
+  user-uid: ${NOTIFICACAO_USER_UID:}
