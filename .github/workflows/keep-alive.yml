@@ -1,0 +1,27 @@
+name: Keep Backend Alive
+
+on:
+  schedule:
+    # A cada 10 minutos — abaixo dos 15 min de timeout do Render free-tier
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # permite rodar manualmente se precisar
+
+jobs:
+  ping:
+    name: Ping /api/ping
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Acordar backend
+        run: |
+          echo "Pingando backend em $(date -u)"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 30 \
+            https://financeira-moreira-api.onrender.com/api/ping)
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "⚠️  Backend respondeu $STATUS (pode estar acordando — ok)"
+          else
+            echo "✅ Backend acordado"
+          fi
