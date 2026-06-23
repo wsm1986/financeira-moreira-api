@@ -40,6 +40,14 @@ public class EntryRepositoryImpl implements EntryRepository {
     }
 
     @Override
+    public List<Entry> findAllByUserUidAndYear(String uid, int year) {
+        String yearPrefix = year + "-";
+        return jpa.findAllByUserUidAndMonthKeyStartingWith(uid, yearPrefix).stream()
+                .map(EntryEntity::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional
     public void softDeleteByIdAndUserUid(UUID id, String uid) {
         jpa.softDeleteByIdAndUserUid(id, uid, Instant.now());

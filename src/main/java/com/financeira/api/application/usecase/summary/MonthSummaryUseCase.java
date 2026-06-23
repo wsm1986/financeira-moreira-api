@@ -20,6 +20,7 @@ import java.math.RoundingMode;
 import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Calcula todos os KPIs financeiros do mês para um usuário.
@@ -75,11 +76,13 @@ public class MonthSummaryUseCase {
     public SummaryResponse execute(String uid, String monthKey) {
 
         // ── Mês anterior (para fatura) ────────────────────────────────────────
-        YearMonth ym         = YearMonth.parse(monthKey);
-        YearMonth ymPrev     = ym.minusMonths(1);
+        YearMonth ym           = YearMonth.parse(monthKey);
+        YearMonth ymPrev       = ym.minusMonths(1);
+        YearMonth ymNext       = ym.plusMonths(1);
         String    prevMonthKey = ymPrev.toString();   // ex: "2026-05"
+        String    nextMonthKey = ymNext.toString();   // ex: "2026-07"
 
-        // ── Carregar lançamentos dos dois meses ───────────────────────────────
+        // ── Carregar lançamentos ──────────────────────────────────────────────
         List<Entry> currentEntries = entryRepo.findAllByUserUidAndMonthKey(uid, monthKey);
         List<Entry> prevEntries    = entryRepo.findAllByUserUidAndMonthKey(uid, prevMonthKey);
 
@@ -91,6 +94,11 @@ public class MonthSummaryUseCase {
         // ── Fatura por cartão ─────────────────────────────────────────────────
         List<CreditCard> cards = cardRepo.findAllByUserUid(uid);
 
+        // nextEntries carregado apenas se há cartões: pagamento_fatura pode ter monthKey=nextMonth(mk)
+        List<Entry> nextEntries = cards.isEmpty()
+                ? List.of()
+                : entryRepo.findAllByUserUidAndMonthKey(uid, nextMonthKey);
+
         List<CardInvoiceSummary> faturasPorCartao = cards.stream().map(card -> {
             // Compras do mês anterior nesse cartão
             BigDecimal fatura = prevEntries.stream()
@@ -99,8 +107,9 @@ public class MonthSummaryUseCase {
                     .map(Entry::getAmount)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            // Pagamentos de fatura lançados no mês atual para esse cartão
-            BigDecimal pago = currentEntries.stream()
+            // Pagamentos de fatura para esse cartão: busca em mk E nextMonth(mk).
+            // Pagamento via Dashboard usa monthKey=mk; via CardsPage pode usar monthKey=nextMonth(mk).
+            BigDecimal pago = Stream.concat(currentEntries.stream(), nextEntries.stream())
                     .filter(e -> card.getId().equals(e.getCardId())
                               && "pagamento_fatura".equals(e.getKind()))
                     .map(Entry::getAmount)
@@ -118,16 +127,6 @@ public class MonthSummaryUseCase {
         BigDecimal totalFaturaPendente = faturasPorCartao.stream()
                 .map(CardInvoiceSummary::getPendente).reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // ── Saldos calculados ─────────────────────────────────────────────────
-        BigDecimal saldoAtualizado = income.subtract(expense).subtract(totalFaturaPendente);
-        BigDecimal saldoProjetado  = saldoAtualizado; // mesma fórmula por ora
-
-        double savingsRate = income.compareTo(BigDecimal.ZERO) > 0
-                ? saldoAtualizado.divide(income, 6, RoundingMode.HALF_UP)
-                              .multiply(BigDecimal.valueOf(100))
-                              .doubleValue()
-                : 0.0;
-
         // ── Patrimônio ────────────────────────────────────────────────────────
         List<Bank>       banks    = bankRepo.findAllByUserUid(uid);
         List<Investment> invests  = investRepo.findAllByUserUid(uid);
@@ -141,6 +140,18 @@ public class MonthSummaryUseCase {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal netWorth = totalBancos.add(totalInvestimentos);
+
+        // ── Saldos calculados ─────────────────────────────────────────────────
+        BigDecimal saldoAtualizado = income.subtract(expense).subtract(totalFaturaPendente);
+        // saldoProjetado = saldo real dos bancos − fatura pendente (fluxo de caixa real).
+        // Fórmula: totalBancos - totalFaturaPendente (espelho do fallback frontend)
+        BigDecimal saldoProjetado  = totalBancos.subtract(totalFaturaPendente);
+
+        double savingsRate = income.compareTo(BigDecimal.ZERO) > 0
+                ? saldoAtualizado.divide(income, 6, RoundingMode.HALF_UP)
+                              .multiply(BigDecimal.valueOf(100))
+                              .doubleValue()
+                : 0.0;
 
         // ── Breakdown por categoria ───────────────────────────────────────────
         List<Category> categories = categoryRepo.findAllByUserUid(uid);

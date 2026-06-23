@@ -10,6 +10,7 @@ public interface EntryRepository {
     Entry save(Entry e);
     Optional<Entry> findByIdAndUserUid(UUID id, String uid);
     List<Entry> findAllByUserUidAndMonthKey(String uid, String monthKey);
+    List<Entry> findAllByUserUidAndYear(String uid, int year);
     void softDeleteByIdAndUserUid(UUID id, String uid);
     boolean existsByIdAndUserUid(UUID id, String uid);
 }

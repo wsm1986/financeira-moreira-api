@@ -14,6 +14,8 @@ import java.util.UUID;
 public interface EntryJpaRepository extends JpaRepository<EntryEntity, UUID> {
     Optional<EntryEntity> findByIdAndUserUid(UUID id, String userUid);
     List<EntryEntity> findAllByUserUidAndMonthKey(String userUid, String monthKey);
+    // Busca todos os lançamentos do ano com uma única query: WHERE month_key LIKE '2026%'
+    List<EntryEntity> findAllByUserUidAndMonthKeyStartingWith(String userUid, String yearPrefix);
     boolean existsByIdAndUserUid(UUID id, String userUid);
 
     @Modifying

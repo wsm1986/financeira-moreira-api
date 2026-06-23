@@ -81,10 +81,11 @@ public class AnnualSummaryUseCase {
             totalPendenteFatura = summary.getTotalFaturaPendente();
         }
 
-        // Carregar todos os lançamentos do ano de uma só vez (evita N queries)
-        // Usando findAllByUserUidAndMonthKey para cada mês
-        // (ou poderíamos ter findAllByUserUidAndYear — mas não existe ainda, então por mês)
+        // Carregar todos os lançamentos do ano com uma única query (evita 12 roundtrips)
         final BigDecimal pendenteFinal = totalPendenteFatura;
+        List<Entry> allYearEntries = entryRepo.findAllByUserUidAndYear(uid, year);
+        Map<String, List<Entry>> byMonth = allYearEntries.stream()
+                .collect(Collectors.groupingBy(Entry::getMonthKey));
 
         List<AnnualMonthRow> monthRows = new ArrayList<>();
         BigDecimal runningBalance = BigDecimal.ZERO;
@@ -94,7 +95,7 @@ public class AnnualSummaryUseCase {
 
         for (int m = 1; m <= 12; m++) {
             String mk = String.format("%d-%02d", year, m);
-            List<Entry> mEntries = entryRepo.findAllByUserUidAndMonthKey(uid, mk);
+            List<Entry> mEntries = byMonth.getOrDefault(mk, List.of());
 
             boolean isFuture = mk.compareTo(currentMk) > 0;
             boolean hasData  = !mEntries.isEmpty();

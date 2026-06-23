@@ -12,6 +12,10 @@ spring:
   jpa:
     show-sql: false
     open-in-view: false
+  jackson:
+    serialization:
+      write-bigdecimal-as-plain: true
+    default-property-inclusion: non_null
 
 springdoc:
   swagger-ui:
