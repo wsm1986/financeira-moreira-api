@@ -33,6 +33,11 @@ public class SecurityConfig {
             "/api/import/bypass",   // bypass temporário sem Firebase token
             "/h2-console/**",
             "/actuator/health",
+            // Bot webhook — autenticado via token no query param (não Firebase)
+            "/api/bot/webhook",
+            "/api/bot/zapi",
+            "/api/bot/evolution",
+            "/api/bot/status",
             // Swagger UI / OpenAPI
             "/swagger-ui.html",
             "/swagger-ui/**",

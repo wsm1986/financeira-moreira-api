@@ -34,3 +34,13 @@ callmebot:
 
 notificacao:
   user-uid: ${NOTIFICACAO_USER_UID:}
+
+# ── Bot WhatsApp (receber mensagens e criar lançamentos) ──────────────
+# Configure no Render:
+#   BOT_TOKEN    — UUID secreto gerado por você (uuidgenerator.net)
+#   BOT_USER_UID — Firebase UID do usuário que será dono dos lançamentos
+#   BOT_PHONE    — (opcional) número autorizado ex: 5511999999999
+bot:
+  token:    ${BOT_TOKEN:}
+  user-uid: ${BOT_USER_UID:}
+  phone:    ${BOT_PHONE:}
